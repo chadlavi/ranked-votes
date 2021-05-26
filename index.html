@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Votes ranker</title>
+  <style>
+    :root {
+      --loading-color: #eee;
+    }
+
+    #loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+
+    .loading-ring {
+      display: inline-block;
+      position: relative;
+      width: 80px;
+      height: 80px;
+    }
+
+    .loading-ring div {
+      box-sizing: border-box;
+      display: block;
+      position: absolute;
+      width: 64px;
+      height: 64px;
+      margin: 8px;
+      border: 8px solid var(--loading-color);
+      border-radius: 50%;
+      animation: loading-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+      border-color: var(--loading-color) transparent transparent transparent;
+    }
+
+    .loading-ring div:nth-child(1) {
+      animation-delay: -0.45s;
+    }
+
+    .loading-ring div:nth-child(2) {
+      animation-delay: -0.3s;
+    }
+
+    .loading-ring div:nth-child(3) {
+      animation-delay: -0.15s;
+    }
+
+    @keyframes loading-ring {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+  <style>
+    /* Put your styles here */
+    :root {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    #app {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .spread,
+    .spaced {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .spread {
+      margin-top: 16px;
+      padding: 4px 0;
+    }
+
+    label {
+      font-size: 14px;
+    }
+
+    textarea {
+      width: 100%;
+      resize: none;
+    }
+
+    #winner {
+      padding: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      font-size: 2em;
+      font-weight: 600;
+      border: 1px solid;
+      color: #3c733c;
+      background: #d3f1d3;
+      border-radius: 8px;
+      margin: 16px auto;
+    }
+
+    #winner.tie {
+      background: #fffde8;
+      color: #88790b;
+    }
+
+    #winner .subheader {
+      font-size: 12px;
+      text-transform: uppercase;
+      opacity: 0.8;
+      margin-bottom: -16px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root">
+    <div id="loading">
+      <div class="loading-ring">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    "use strict";
+
+    import {
+      html,
+      render,
+      useState,
+    } from "https://unpkg.com/htm@3.0.4/preact/standalone.module.js";
+
+    const tabulateRound = (arrayOfArrays) => {
+      const tallies = {}
+      arrayOfArrays.forEach((array, i) => {
+        tallies[array[0]] = (tallies[array[0]] || 0) + 1
+      })
+
+      let highestScore = 0
+      let lowestScore = arrayOfArrays.length
+      let highest = []
+      let lowest = []
+      Object.keys(tallies).forEach(c => {
+        const candidate = parseInt(c, 10)
+        const score = tallies[candidate]
+        if (score > highestScore) {
+          highestScore = score
+          highest = [candidate]
+        } else if (score === highestScore) {
+          highest.push(candidate)
+        }
+
+        if (score < lowestScore) {
+          lowestScore = score
+          lowest = [candidate]
+        } else if (score === lowestScore) {
+          lowest.push(candidate)
+        }
+      })
+      return {
+        tallies,
+        highest,
+        lowest,
+        highestScore,
+        lowestScore,
+      }
+    }
+
+    const removeLosers = (votes, losers) => votes.map(array => array.filter(vote => !losers.includes(vote)))
+
+    const findWinner = (votes) => {
+      const { highest, lowest } = tabulateRound(votes)
+      if (highest.length === 1) return highest
+      if (highest.length !== lowest.length) {
+        const newVotes = removeLosers(votes, lowest)
+        return findWinner(newVotes)
+      }
+      return highest
+    }
+
+    const parseCandidates = (candidates) => candidates ? candidates.split("\n") : []
+
+    const parseVotes = (votes) => votes ? votes
+      .split("\n")
+      .filter(e => e.length > 0)
+      .map(a => a.split(",").map(e => parseInt(e) - 1)
+      ) : []
+
+    const App = () => {
+      const initialCandidates = localStorage.getItem("candidates") || ""
+      const initialVotes = localStorage.getItem("votes") || ""
+      const [candidateInput, setCandidateInput] = useState(initialCandidates);
+      const [voteInput, setVoteInput] = useState(initialVotes);
+      const [winner, setWinner] = useState();
+      const [winnerCount, setWinnerCount] = useState();
+      const [runoffWinner, setRunoffWinner] = useState();
+
+
+      const handleUpdateCandidates = (e) => {
+        const newValue = e.target.value
+        localStorage.setItem("candidates", newValue)
+        setCandidateInput(newValue)
+      }
+      const handleUpdateVotes = (e) => {
+        const newValue = e.target.value
+        localStorage.setItem("votes", newValue)
+        setVoteInput(newValue)
+      }
+
+      const handleClearCandidates = () => {
+        localStorage.removeItem("candidates")
+        setCandidateInput("")
+      }
+      const handleClearVotes = () => {
+        localStorage.removeItem("votes")
+        setVoteInput("")
+      }
+      const handleFormatVotes = () => {
+        const formattedVotes = voteInput.replace(/,(\d)/g, ", $1").replace(/,?\s*\n/g, "\n")
+        setVoteInput(formattedVotes)
+        localStorage.setItem("votes", formattedVotes)
+      }
+
+      const handleCalculate = () => {
+        setRunoffWinner("")
+        setWinner("")
+        const candidates = parseCandidates(candidateInput)
+        const votes = parseVotes(voteInput)
+
+        const winner = findWinner(votes)
+        if (winner) {
+          setWinnerCount(winner.length)
+          if (winner.length === 1) setWinner(`🥇 ${candidates[winner]}`)
+          if (winner.length > 1) {
+            const winners = winner.map(w => candidates[w]).join(", ")
+            setWinner(`${winner.map(() => '🏅').join('')} ${winners}`)
+          }
+        }
+      }
+
+      const handleRunoff = () => {
+        const winners = findWinner(parseVotes(voteInput))
+        const runoffWinner = parseCandidates(candidateInput)[winners[Math.floor(Math.random() * winners.length)]]
+        setRunoffWinner(runoffWinner)
+      }
+
+      return html`
+        <div id="app">
+          <div class="spread">
+            <label htmlFor="candidates">Candidates</label>
+            <div class="spaced">
+              <button disabled=${candidateInput.length === 0} onClick=${handleClearCandidates}>reset</button>
+            </div>
+          </div>
+          <textarea id="candidates" value=${candidateInput} onInput=${handleUpdateCandidates} rows="10" />
+          <div class="spread">
+            <label htmlFor="votes">Votes (1-indexed)</label>
+            <div class="spaced">
+              <button disabled=${voteInput.length === 0} onClick=${handleClearVotes}>reset</button>
+              <button disabled=${voteInput.length === 0} onClick=${handleFormatVotes}>clean up formatting</button>
+            </div>
+          </div>
+          <textarea id="votes" value=${voteInput} onInput=${handleUpdateVotes} rows="10" />
+          <div>
+            <button id="calculate" onClick=${handleCalculate}>calculate</button>
+          </div>
+          ${winner && html`<div id="winner" class=${(winnerCount > 1 && !runoffWinner) ? "tie" : ""}>
+            <div class="subheader">${winnerCount === 1 ? "winner" : `it${runoffWinner ? " wa" : "'"}s a${winnerCount > 2 ? ` ${winnerCount}-way` : ""} tie`}</div>
+            <div>
+              ${winner}
+            </div>
+            ${winnerCount > 1 && html`
+              <button disabled=${runoffWinner} onClick=${handleRunoff}>
+                ${runoffWinner
+              ? `${winnerCount === 2 ? 'Flipped a coin' : `Rolled a d${winnerCount}`}!`
+              : `${winnerCount === 2 ? 'Flip a coin' : `Roll a d${winnerCount}`}?`
+            }
+              </button>
+              ${runoffWinner && html`
+                <div class="subheader">Final winner</div>
+                <div id="runoff-winner">${runoffWinner}</div>
+              `}
+            `}
+          </div>`}
+        </div>
+      `;
+    }
+
+    render(
+      html`<${App} />`,
+      document.getElementById("root"),
+      document.getElementById("loading")
+    );
+  </script>
+</body>
+
+</html>
