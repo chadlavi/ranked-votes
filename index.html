@@ -99,6 +99,7 @@
     textarea {
       width: 100%;
       resize: none;
+      font-family: monospace;
     }
 
     #winner {
@@ -237,7 +238,7 @@
         setVoteInput("")
       }
       const handleFormatVotes = () => {
-        const formattedVotes = voteInput.replace(/,(\d)/g, ", $1").replace(/,?\s*\n/g, "\n")
+        const formattedVotes = voteInput.replace(/,(\d)/g, ", $1").replace(/,?\s*\n/g, "\n").replace(/,?\s*$/, "")
         setVoteInput(formattedVotes)
         localStorage.setItem("votes", formattedVotes)
       }
@@ -245,6 +246,7 @@
       const handleCalculate = () => {
         setRunoffWinner("")
         setWinner("")
+        handleFormatVotes()
         const candidates = parseCandidates(candidateInput)
         const votes = parseVotes(voteInput)
 
@@ -277,8 +279,8 @@
           <div class="spread">
             <label htmlFor="votes">Votes (1-indexed)</label>
             <div class="spaced">
-              <button disabled=${voteInput.length === 0} onClick=${handleClearVotes}>reset</button>
               <button disabled=${voteInput.length === 0} onClick=${handleFormatVotes}>clean up formatting</button>
+              <button disabled=${voteInput.length === 0} onClick=${handleClearVotes}>reset</button>
             </div>
           </div>
           <textarea id="votes" value=${voteInput} onInput=${handleUpdateVotes} rows="10" />
