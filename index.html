@@ -284,7 +284,7 @@
               <button disabled=${voteInput.length === 0} onClick=${handleClearVotes}>reset</button>
             </div>
           </div>
-          <textarea id="votes" value=${voteInput} onInput=${handleUpdateVotes} rows="10" />
+          <textarea id="votes" inputMode="numeric" value=${voteInput} onInput=${handleUpdateVotes} rows="10" />
           <div>
             <button id="calculate" onClick=${handleCalculate}>calculate</button>
           </div>
