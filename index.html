@@ -348,16 +348,16 @@
             >
               <div class="subheader">
                 ${winnerCount === 1
-            ? "we have a winner"
-            : `it${runoffWinner
-              ? " wa"
-              : "'"
-            }s a${winnerCount > 2 ? ` ${winnerCount}-way` : ""} tie`
-          }\xa0
-                ${winnerCount === 1
-            ? "🥇"
-            : "🏅".repeat(winnerCount)
-          }
+                  ? "we have a winner"
+                  : `it${runoffWinner
+                    ? " wa"
+                    : "'"
+                  }s a${winnerCount > 2 ? ` ${winnerCount}-way` : ""} tie`
+                }\xa0
+                      ${winnerCount === 1
+                  ? "🥇"
+                  : "🏅".repeat(winnerCount)
+                }
               </div>
               <div>
                 ${winner}
@@ -365,13 +365,13 @@
               ${winnerCount > 1 && html`
                 <button disabled=${runoffWinner} onClick=${handleRunoff}>
                   ${runoffWinner
-              ? `${winnerCount === 2
-                ? "Flipped a coin"
-                : `Rolled a d${winnerCount}`}!`
-              : `${winnerCount === 2
-                ? "Flip a coin"
-                : `Roll a d${winnerCount}`}?`
-            }
+                    ? `${winnerCount === 2
+                      ? "Flipped a coin"
+                      : `Rolled a d${winnerCount}`}!`
+                    : `${winnerCount === 2
+                      ? "Flip a coin"
+                      : `Roll a d${winnerCount}`}?`
+                  }
                 </button>
                 ${runoffWinner && html`
                   <div class="subheader">Final winner 🥇</div>
@@ -379,7 +379,7 @@
                 `}
               `}
             </div>
-            `}
+          `}
         </div>
       `;
     }
