@@ -65,9 +65,9 @@
     }
   </style>
   <style>
-    /* Put your styles here */
     :root {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
 
     * {
@@ -92,14 +92,21 @@
       padding: 4px 0;
     }
 
-    label {
+    label, p.description {
       font-size: 14px;
+    }
+
+    p.description {
+      margin-top: 0;
+      color: #999;
     }
 
     textarea {
       width: 100%;
-      resize: none;
+      resize: vertical;
       font-family: monospace;
+      font-size: inherit;
+      white-space: pre-line;
     }
 
     #winner {
@@ -117,6 +124,7 @@
       background: #d3f1d3;
       border-radius: 8px;
       margin: 16px auto;
+      margin-bottom: 64px;
     }
 
     #winner.tie {
@@ -189,7 +197,8 @@
       }
     }
 
-    const removeLosers = (votes, losers) => votes.map(array => array.filter(vote => !losers.includes(vote)))
+    const removeLosers = (votes, losers) => votes
+      .map(array => array.filter(vote => !losers.includes(vote)))
 
     const findWinner = (votes) => {
       const { highest, lowest } = tabulateRound(votes)
@@ -201,7 +210,8 @@
       return highest
     }
 
-    const parseCandidates = (candidates) => candidates ? candidates.split("\n") : []
+    const parseCandidates = (candidates) =>
+      candidates ? candidates.split("\n") : []
 
     const parseVotes = (votes) => votes ? votes
       .split("\n")
@@ -217,7 +227,6 @@
       const [winner, setWinner] = useState();
       const [winnerCount, setWinnerCount] = useState();
       const [runoffWinner, setRunoffWinner] = useState();
-
 
       const handleUpdateCandidates = (e) => {
         const newValue = e.target.value
@@ -239,7 +248,13 @@
         setVoteInput("")
       }
       const handleFormatVotes = () => {
-        const formattedVotes = voteInput.replace(/,(\d)/g, ", $1").replace(/,?\s*\n/g, "\n").replace(/,?\s*$/, "")
+        const formattedVotes = voteInput
+          .replace(/\s*,/g, ",")
+          .replace(/\n,? *,?/g, "\n")
+          .replace(/,([^\s])/g, ", $1")
+          .replace(/,?\s*\n/g, "\n")
+          .replace(/,?\s*$/, "")
+          .replace(/\n+/g, "\n")
         setVoteInput(formattedVotes)
         localStorage.setItem("votes", formattedVotes)
       }
@@ -254,17 +269,20 @@
         const winner = findWinner(votes)
         if (winner) {
           setWinnerCount(winner.length)
-          if (winner.length === 1) setWinner(`🥇 ${candidates[winner]}`)
+          if (winner.length === 1) setWinner(candidates[winner])
           if (winner.length > 1) {
             const winners = winner.map(w => candidates[w]).join(", ")
-            setWinner(`${winner.map(() => '🏅').join('')} ${winners}`)
+            setWinner(winners)
           }
         }
       }
 
       const handleRunoff = () => {
         const winners = findWinner(parseVotes(voteInput))
-        const runoffWinner = parseCandidates(candidateInput)[winners[Math.floor(Math.random() * winners.length)]]
+        const runoffWinner =
+          parseCandidates(candidateInput)[
+          winners[Math.floor(Math.random() * winners.length)]
+          ]
         setRunoffWinner(runoffWinner)
       }
 
@@ -273,39 +291,94 @@
           <div class="spread">
             <label htmlFor="candidates">Candidates</label>
             <div class="spaced">
-              <button disabled=${candidateInput.length === 0} onClick=${handleClearCandidates}>reset</button>
+              <button
+                disabled=${candidateInput.length === 0}
+                onClick=${handleClearCandidates}
+              >
+                reset
+              </button>
             </div>
           </div>
-          <textarea id="candidates" value=${candidateInput} onInput=${handleUpdateCandidates} rows="10" />
+          <textarea
+            id="candidates"
+            aria-describedby="candidates-description"
+            value=${candidateInput}
+            onInput=${handleUpdateCandidates}
+            rows="5"
+          />
+          <p class="description" id="candidates-description">
+            Enter one candidate per line
+          </p>
           <div class="spread">
             <label htmlFor="votes">Votes (1-indexed)</label>
             <div class="spaced">
-              <button disabled=${voteInput.length === 0} onClick=${handleFormatVotes}>clean up formatting</button>
-              <button disabled=${voteInput.length === 0} onClick=${handleClearVotes}>reset</button>
+              <button
+                disabled=${voteInput.length === 0}
+                onClick=${handleFormatVotes}
+              >
+                clean up formatting
+              </button>
+              <button
+                disabled=${voteInput.length === 0}
+                onClick=${handleClearVotes}
+              >
+                reset
+              </button>
             </div>
           </div>
-          <textarea id="votes" inputMode="numeric" value=${voteInput} onInput=${handleUpdateVotes} rows="10" />
+          <textarea
+            id="votes"
+            aria-describedby="votes-description"
+            inputMode="numeric"
+            value=${voteInput}
+            onInput=${handleUpdateVotes}
+            rows="10"
+          />
+          <p class="description" id="votes-description">
+            Enter one set of comma-separated votes per line
+          </p>
           <div>
             <button id="calculate" onClick=${handleCalculate}>calculate</button>
           </div>
-          ${winner && html`<div id="winner" class=${(winnerCount > 1 && !runoffWinner) ? "tie" : ""}>
-            <div class="subheader">${winnerCount === 1 ? "winner" : `it${runoffWinner ? " wa" : "'"}s a${winnerCount > 2 ? ` ${winnerCount}-way` : ""} tie`}</div>
-            <div>
-              ${winner}
-            </div>
-            ${winnerCount > 1 && html`
-              <button disabled=${runoffWinner} onClick=${handleRunoff}>
-                ${runoffWinner
-              ? `${winnerCount === 2 ? 'Flipped a coin' : `Rolled a d${winnerCount}`}!`
-              : `${winnerCount === 2 ? 'Flip a coin' : `Roll a d${winnerCount}`}?`
+          ${winner && html`
+            <div
+              id="winner"
+              class=${(winnerCount > 1 && !runoffWinner) ? "tie" : ""}
+            >
+              <div class="subheader">
+                ${winnerCount === 1
+            ? "we have a winner"
+            : `it${runoffWinner
+              ? " wa"
+              : "'"
+            }s a${winnerCount > 2 ? ` ${winnerCount}-way` : ""} tie`
+          }\xa0
+                ${winnerCount === 1
+            ? "🥇"
+            : "🏅".repeat(winnerCount)
+          }
+              </div>
+              <div>
+                ${winner}
+              </div>
+              ${winnerCount > 1 && html`
+                <button disabled=${runoffWinner} onClick=${handleRunoff}>
+                  ${runoffWinner
+              ? `${winnerCount === 2
+                ? "Flipped a coin"
+                : `Rolled a d${winnerCount}`}!`
+              : `${winnerCount === 2
+                ? "Flip a coin"
+                : `Roll a d${winnerCount}`}?`
             }
-              </button>
-              ${runoffWinner && html`
-                <div class="subheader">Final winner</div>
-                <div id="runoff-winner">${runoffWinner}</div>
+                </button>
+                ${runoffWinner && html`
+                  <div class="subheader">Final winner</div>
+                  <div id="runoff-winner">${runoffWinner}</div>
+                `}
               `}
+            </div>
             `}
-          </div>`}
         </div>
       `;
     }
